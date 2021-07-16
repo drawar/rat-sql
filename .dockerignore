@@ -14,3 +14,6 @@ logdir/
 ie_dirs/
 dumps/
 att_dirs/
+rat_venv
+
+third_party/wikisql/data
