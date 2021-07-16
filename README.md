@@ -107,3 +107,14 @@ provided by the bot. You will only need to do this once across all repos using o
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+
+## Aish's Stuff
+### Useful commands
+```
+docker build -t ratsql . -t aishpra/ratsql
+docker run -p 5000:5000 --rm -m4g -v /Users/aish/Documents/repos/RATSQL/data:/mnt/data -it aishpra/ratsql
+python run.py preprocess experiments/wikisql-glove-run.jsonnet
+python run.py train experiments/wikisql-glove-run.jsonnet
+./run_mlflow.sh
+```

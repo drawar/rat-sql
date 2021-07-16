@@ -27,6 +27,9 @@ from ratsql.utils import saver as saver_mod
 # noinspection PyUnresolvedReferences
 from ratsql.utils import vocab
 
+import mlflow.pytorch
+from mlflow.tracking import MlflowClient
+
 
 @attr.s
 class TrainConfig:
@@ -105,113 +108,117 @@ class Trainer:
     def train(self, config, modeldir):
         # slight difference here vs. unrefactored train: The init_random starts over here.
         # Could be fixed if it was important by saving random state at end of init
-        with self.init_random:
-            # We may be able to move optimizer and lr_scheduler to __init__ instead. Empirically it works fine. I think that's because saver.restore 
-            # resets the state by calling optimizer.load_state_dict. 
-            # But, if there is no saved file yet, I think this is not true, so might need to reset the optimizer manually?
-            # For now, just creating it from scratch each time is safer and appears to be the same speed, but also means you have to pass in the config to train which is kind of ugly.
+        mlflow.pytorch.autolog(log_models=False)
+        with mlflow.start_run() as run:
+            with self.init_random:
+                # We may be able to move optimizer and lr_scheduler to __init__ instead. Empirically it works fine. I think that's because saver.restore 
+                # resets the state by calling optimizer.load_state_dict. 
+                # But, if there is no saved file yet, I think this is not true, so might need to reset the optimizer manually?
+                # For now, just creating it from scratch each time is safer and appears to be the same speed, but also means you have to pass in the config to train which is kind of ugly.
 
-            # TODO: not nice
-            if config["optimizer"].get("name", None) == 'bertAdamw':
-                bert_params = list(self.model.encoder.bert_model.parameters())
-                assert len(bert_params) > 0
-                non_bert_params = []
-                for name, _param in self.model.named_parameters():
-                    if "bert" not in name:
-                        non_bert_params.append(_param)
-                assert len(non_bert_params) + len(bert_params) == len(list(self.model.parameters()))
+                # TODO: not nice
+                if config["optimizer"].get("name", None) == 'bertAdamw':
+                    bert_params = list(self.model.encoder.bert_model.parameters())
+                    assert len(bert_params) > 0
+                    non_bert_params = []
+                    for name, _param in self.model.named_parameters():
+                        if "bert" not in name:
+                            non_bert_params.append(_param)
+                    assert len(non_bert_params) + len(bert_params) == len(list(self.model.parameters()))
 
-                optimizer = registry.construct('optimizer', config['optimizer'], non_bert_params=non_bert_params,
-                                               bert_params=bert_params)
-                lr_scheduler = registry.construct('lr_scheduler',
-                                                  config.get('lr_scheduler', {'name': 'noop'}),
-                                                  param_groups=[optimizer.non_bert_param_group,
-                                                                optimizer.bert_param_group])
-            else:
-                optimizer = registry.construct('optimizer', config['optimizer'], params=self.model.parameters())
-                lr_scheduler = registry.construct('lr_scheduler',
-                                                  config.get('lr_scheduler', {'name': 'noop'}),
-                                                  param_groups=optimizer.param_groups)
+                    optimizer = registry.construct('optimizer', config['optimizer'], non_bert_params=non_bert_params,
+                                                bert_params=bert_params)
+                    lr_scheduler = registry.construct('lr_scheduler',
+                                                    config.get('lr_scheduler', {'name': 'noop'}),
+                                                    param_groups=[optimizer.non_bert_param_group,
+                                                                    optimizer.bert_param_group])
+                else:
+                    optimizer = registry.construct('optimizer', config['optimizer'], params=self.model.parameters())
+                    lr_scheduler = registry.construct('lr_scheduler',
+                                                    config.get('lr_scheduler', {'name': 'noop'}),
+                                                    param_groups=optimizer.param_groups)
 
-        # 2. Restore model parameters
-        saver = saver_mod.Saver(
-            {"model": self.model, "optimizer": optimizer}, keep_every_n=self.train_config.keep_every_n)
-        last_step = saver.restore(modeldir, map_location=self.device)
+            # 2. Restore model parameters
+            saver = saver_mod.Saver(
+                {"model": self.model, "optimizer": optimizer}, keep_every_n=self.train_config.keep_every_n)
+            last_step = saver.restore(modeldir, map_location=self.device)
 
-        #lr fix to not break scheduler when loading from checkpoint
-        lr_scheduler.param_groups = optimizer.param_groups
+            #lr fix to not break scheduler when loading from checkpoint
+            lr_scheduler.param_groups = optimizer.param_groups
 
-        if "pretrain" in config and last_step == 0:
-            pretrain_config = config["pretrain"]
-            _path = pretrain_config["pretrained_path"]
-            _step = pretrain_config["checkpoint_step"]
-            pretrain_step = saver.restore(_path, step=_step, map_location=self.device, item_keys=["model"])
-            saver.save(modeldir, pretrain_step)  # for evaluating pretrained models
-            last_step = pretrain_step
+            if "pretrain" in config and last_step == 0:
+                pretrain_config = config["pretrain"]
+                _path = pretrain_config["pretrained_path"]
+                _step = pretrain_config["checkpoint_step"]
+                pretrain_step = saver.restore(_path, step=_step, map_location=self.device, item_keys=["model"])
+                saver.save(modeldir, pretrain_step)  # for evaluating pretrained models
+                last_step = pretrain_step
 
-        # 3. Get training data somewhere
-        with self.data_random:
-            train_data = self.model_preproc.dataset('train')
-            train_data_loader = self._yield_batches_from_epochs(
-                torch.utils.data.DataLoader(
-                    train_data,
-                    batch_size=self.train_config.batch_size,
-                    shuffle=True,
-                    drop_last=True,
-                    collate_fn=lambda x: x))
-        train_eval_data_loader = torch.utils.data.DataLoader(
-            train_data,
-            batch_size=self.train_config.eval_batch_size,
-            collate_fn=lambda x: x)
+            # 3. Get training data somewhere
+            with self.data_random:
+                train_data = self.model_preproc.dataset('train')
+                train_data_loader = self._yield_batches_from_epochs(
+                    torch.utils.data.DataLoader(
+                        train_data,
+                        batch_size=self.train_config.batch_size,
+                        shuffle=True,
+                        drop_last=True,
+                        collate_fn=lambda x: x))
+            train_eval_data_loader = torch.utils.data.DataLoader(
+                train_data,
+                batch_size=self.train_config.eval_batch_size,
+                collate_fn=lambda x: x)
 
-        val_data = self.model_preproc.dataset('val')
-        val_data_loader = torch.utils.data.DataLoader(
-            val_data,
-            batch_size=self.train_config.eval_batch_size,
-            collate_fn=lambda x: x)
+            val_data = self.model_preproc.dataset('val')
+            val_data_loader = torch.utils.data.DataLoader(
+                val_data,
+                batch_size=self.train_config.eval_batch_size,
+                collate_fn=lambda x: x)
 
-        # 4. Start training loop
-        with self.data_random:
-            for batch in train_data_loader:
-                # Quit if too long
-                if last_step >= self.train_config.max_steps:
-                    break
+            # 4. Start training loop
+            with self.data_random:
+                for batch in train_data_loader:
+                    # Quit if too long
+                    if last_step >= 1000:
+                    # if last_step >= self.train_config.max_steps:
+                        break
 
-                # Evaluate model
-                if last_step % self.train_config.eval_every_n == 0:
-                    if self.train_config.eval_on_train:
-                        self._eval_model(self.logger, self.model, last_step, train_eval_data_loader, 'train',
-                                         num_eval_items=self.train_config.num_eval_items)
-                    if self.train_config.eval_on_val:
-                        self._eval_model(self.logger, self.model, last_step, val_data_loader, 'val',
-                                         num_eval_items=self.train_config.num_eval_items)
+                    # Evaluate model
+                    if last_step % self.train_config.eval_every_n == 0:
+                        if self.train_config.eval_on_train:
+                            self._eval_model(self.logger, self.model, last_step, train_eval_data_loader, 'train',
+                                            num_eval_items=self.train_config.num_eval_items)
+                        if self.train_config.eval_on_val:
+                            self._eval_model(self.logger, self.model, last_step, val_data_loader, 'val',
+                                            num_eval_items=self.train_config.num_eval_items)
 
-                # Compute and apply gradient
-                with self.model_random:
-                    for _i in range(self.train_config.num_batch_accumulated):
-                        if _i > 0:  batch = next(train_data_loader)
-                        loss = self.model.compute_loss(batch)
-                        norm_loss = loss / self.train_config.num_batch_accumulated
-                        norm_loss.backward()
+                    # Compute and apply gradient
+                    with self.model_random:
+                        for _i in range(self.train_config.num_batch_accumulated):
+                            if _i > 0:  batch = next(train_data_loader)
+                            loss = self.model.compute_loss(batch)
+                            norm_loss = loss / self.train_config.num_batch_accumulated
+                            norm_loss.backward()
 
-                    if self.train_config.clip_grad:
-                        torch.nn.utils.clip_grad_norm_(optimizer.bert_param_group["params"], \
-                                                       self.train_config.clip_grad)
-                    optimizer.step()
-                    lr_scheduler.update_lr(last_step)
-                    optimizer.zero_grad()
+                        if self.train_config.clip_grad:
+                            torch.nn.utils.clip_grad_norm_(optimizer.bert_param_group["params"], \
+                                                        self.train_config.clip_grad)
+                        optimizer.step()
+                        lr_scheduler.update_lr(last_step)
+                        optimizer.zero_grad()
 
-                # Report metrics
-                if last_step % self.train_config.report_every_n == 0:
-                    self.logger.log(f'Step {last_step}: loss={loss.item():.4f}')
+                    # Report metrics
+                    mlflow.log_metric("loss", loss.item(), step=last_step)
+                    if last_step % self.train_config.report_every_n == 0:
+                        self.logger.log(f'Step {last_step}: loss={loss.item():.4f}')
 
-                last_step += 1
-                # Run saver
-                if last_step == 1 or last_step % self.train_config.save_every_n == 0:
-                    saver.save(modeldir, last_step)
+                    last_step += 1
+                    # Run saver
+                    if last_step == 1 or last_step % self.train_config.save_every_n == 0:
+                        saver.save(modeldir, last_step)
 
-            # Save final model
-            saver.save(modeldir, last_step)
+                # Save final model
+                saver.save(modeldir, last_step)
 
     @staticmethod
     def _yield_batches_from_epochs(loader):

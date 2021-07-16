@@ -47,4 +47,8 @@ RUN /bin/bash -c 'if compgen -G "/app/**/*.sh" > /dev/null; then dos2unix /app/*
 # Extend PYTHONPATH to load WikiSQL dependencies
 ENV PYTHONPATH="/app/third_party/wikisql/:${PYTHONPATH}" 
 
+# For MLflow
+EXPOSE 5000
+# RUN entrypoint.sh
+
 ENTRYPOINT bash
