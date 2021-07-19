@@ -86,10 +86,10 @@ function(output_from, data_path='data/spider/') {
         batch_size: 10,
         eval_batch_size: 50,
 
-        keep_every_n: 1000,
+        keep_every_n: 10000,
         eval_every_n: 100,
-        save_every_n: 100,
-        report_every_n: 10,
+        save_every_n: 1000,
+        report_every_n: 100,
 
         max_steps: 40000,
         num_eval_items: 50,

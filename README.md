@@ -1,29 +1,9 @@
-# RAT-SQL
+# DistilRAT & DistilDuoRAT
 
-This repository contains code for the ACL 2020 paper ["RAT-SQL: Relation-Aware Schema Encoding and Linking for Text-to-SQL Parsers"](https://arxiv.org/abs/1911.04942).
+This repository contains the code for the DistilRAT and DistilDuoRAT based on the following papers:
 
-If you use RAT-SQL in your work, please cite it as follows:
-
-```bibtex
-@inproceedings{rat-sql,
-    title = "{RAT-SQL}: Relation-Aware Schema Encoding and Linking for Text-to-{SQL} Parsers",
-    author = "Wang, Bailin and Shin, Richard and Liu, Xiaodong and Polozov, Oleksandr and Richardson, Matthew",
-    booktitle = "Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics",
-    month = jul,
-    year = "2020",
-    address = "Online",
-    publisher = "Association for Computational Linguistics",
-    pages = "7567--7578"
-}
-```
-
-## Changelog
-
-**2020-08-14:**
-
-- The Docker image now inherits from a CUDA-enabled base image.
-- Clarified memory and dataset requirements on the image.
-- Fixed the issue where token IDs were not converted to word-piece IDs for BERT value linking.
+- RAT-SQL: ["RAT-SQL: Relation-Aware Schema Encoding and Linking for Text-to-SQL Parsers"](https://arxiv.org/abs/1911.04942) [Code](https://github.com/microsoft/rat-sql)
+- DuoRAT: ["DuoRAT: Towards Simpler Text-to-SQL Models"](https://arxiv.org/abs/2010.11119) [Code](https://github.com/ElementAI/duorat)
 
 ## Usage
 
@@ -80,47 +60,26 @@ The `-m4g` switch overrides it; alternatively, you can increase the default limi
 > If you prefer to set up and run the codebase without Docker, follow the steps in `Dockerfile` one by one.
 > Note that this repository requires Python 3.7 or higher and a JVM to run [Stanford CoreNLP](https://stanfordnlp.github.io/CoreNLP/).
 
-### Step 3: Run the experiments
+### Step 3: Set up tracking
+
+```
+docker build -t ratsql . -t [git-user]/ratsql
+docker run -p 5000:5000 --rm -m4g -v /path/to/tracking/data:/mnt/data -it [git-user]/ratsql
+```
+
+### Step 4: Run the experiments
 
 Every experiment has its own config file in `experiments`.
 The pipeline of working with any model version or dataset is:
 
 ```bash
-python run.py preprocess experiment_config_file  # Step 3a: preprocess the data
-python run.py train experiment_config_file       # Step 3b: train a model
-python run.py eval experiment_config_file        # Step 3b: evaluate the results
+python run.py preprocess experiment_config_file  # Step 4a: preprocess the data
+python run.py train experiment_config_file       # Step 4b: train a model
+python run.py eval experiment_config_file        # Step 4c: evaluate the results
 ```
 
-Use the following experiment config files to reproduce our results:
+List of experiments (using Spider data set)
 
-- Spider, GloVE version: `experiments/spider-glove-run.jsonnet`
-- Spider, BERT version (requires a GPU with at least 16GB memory): `experiments/spider-bert-run.jsonnet`
-- WikiSQL, GloVE version: `experiments/wikisql-glove-run.jsonnet`
-
-The exact model accuracy may vary by ±2% depending on a random seed. See [paper](https://arxiv.org/abs/1911.04942) for details.
-
-## Contributing
-
-This project welcomes contributions and suggestions. Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
-
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
-
-## Aish's Stuff
-
-### Useful commands
-
-```
-docker build -t ratsql . -t aishpra/ratsql
-docker run -p 5000:5000 --rm -m4g -v /Users/aish/Documents/repos/RATSQL/data:/mnt/data -it aishpra/ratsql
-python run.py preprocess experiments/wikisql-glove-run.jsonnet
-python run.py train experiments/wikisql-glove-run.jsonnet
-./run_mlflow.sh
-```
+1. Replica (i.e. RAT + BERT): `experiments/rat-bert-run.jsonnet`
+2. RAT + DistilBERT: `experiments/rat-distilbert-run.jsonnet` (distilled from the generic `bert-base-uncased` model pre-trained with MLM objective)
+3. RAT + DistilBART: `experiments/rat-distilbart-run.jsonnet` (distilled from the generic `facebook/bart-base` model fine-tuned on the summarization task on the XSUM dataset)
