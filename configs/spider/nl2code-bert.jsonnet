@@ -4,7 +4,7 @@ local _fs = 2;
 
 function(args) _base(output_from=_output_from, data_path=args.data_path) + {
     local data_path = args.data_path,
-    
+
     local lr_s = '%0.1e' % args.lr,
     local bert_lr_s = '%0.1e' % args.bert_lr,
     local end_lr_s = if args.end_lr == 0 then '0e0' else '%0.1e' % args.end_lr,
@@ -87,7 +87,7 @@ function(args) _base(output_from=_output_from, data_path=args.data_path) + {
         model_seed: args.att,
         data_seed:  args.att,
         init_seed:  args.att,
-        
+
         max_steps: args.max_steps,
     },
 

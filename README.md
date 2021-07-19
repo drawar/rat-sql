@@ -3,7 +3,8 @@
 This repository contains code for the ACL 2020 paper ["RAT-SQL: Relation-Aware Schema Encoding and Linking for Text-to-SQL Parsers"](https://arxiv.org/abs/1911.04942).
 
 If you use RAT-SQL in your work, please cite it as follows:
-``` bibtex
+
+```bibtex
 @inproceedings{rat-sql,
     title = "{RAT-SQL}: Relation-Aware Schema Encoding and Linking for Text-to-{SQL} Parsers",
     author = "Wang, Bailin and Shin, Richard and Liu, Xiaodong and Polozov, Oleksandr and Richardson, Matthew",
@@ -19,9 +20,10 @@ If you use RAT-SQL in your work, please cite it as follows:
 ## Changelog
 
 **2020-08-14:**
+
 - The Docker image now inherits from a CUDA-enabled base image.
 - Clarified memory and dataset requirements on the image.
-- Fixed the issue where token IDs were not converted to word-piece IDs for BERT value linking.  
+- Fixed the issue where token IDs were not converted to word-piece IDs for BERT value linking.
 
 ## Usage
 
@@ -29,6 +31,7 @@ If you use RAT-SQL in your work, please cite it as follows:
 
 Download the datasets: [Spider](https://yale-lily.github.io/spider) and [WikiSQL](https://github.com/salesforce/WikiSQL). In case of Spider, make sure to download the `08/03/2020` version or newer.
 Unpack the datasets somewhere outside this project to create the following directory structure:
+
 ```
 /path/to/data
 ├── spider
@@ -53,7 +56,8 @@ Unpack the datasets somewhere outside this project to create the following direc
 ```
 
 To work with the WikiSQL dataset, clone its evaluation scripts into this project:
-``` bash
+
+```bash
 mkdir -p third_party
 git clone https://github.com/salesforce/WikiSQL third_party/wikisql
 ```
@@ -63,10 +67,12 @@ git clone https://github.com/salesforce/WikiSQL third_party/wikisql
 We have provided a `Dockerfile` that sets up the entire environment for you.
 It assumes that you mount the datasets downloaded in Step 1 as a volume `/mnt/data` into a running image.
 Thus, the environment setup for RAT-SQL is:
-``` bash
+
+```bash
 docker build -t ratsql .
 docker run --rm -m4g -v /path/to/data:/mnt/data -it ratsql
 ```
+
 Note that the image requires at least 4 GB of RAM to run preprocessing.
 By default, [Docker Desktop for Mac](https://hub.docker.com/editions/community/docker-ce-desktop-mac/) and [Docker Desktop for Windows](https://hub.docker.com/editions/community/docker-ce-desktop-windows) run containers with 2 GB of RAM.
 The `-m4g` switch overrides it; alternatively, you can increase the default limit in the Docker Desktop settings.
@@ -77,9 +83,9 @@ The `-m4g` switch overrides it; alternatively, you can increase the default limi
 ### Step 3: Run the experiments
 
 Every experiment has its own config file in `experiments`.
-The pipeline of working with any model version or dataset is: 
+The pipeline of working with any model version or dataset is:
 
-``` bash
+```bash
 python run.py preprocess experiment_config_file  # Step 3a: preprocess the data
 python run.py train experiment_config_file       # Step 3b: train a model
 python run.py eval experiment_config_file        # Step 3b: evaluate the results
@@ -87,16 +93,15 @@ python run.py eval experiment_config_file        # Step 3b: evaluate the results
 
 Use the following experiment config files to reproduce our results:
 
-* Spider, GloVE version: `experiments/spider-glove-run.jsonnet`
-* Spider, BERT version (requires a GPU with at least 16GB memory): `experiments/spider-bert-run.jsonnet`
-* WikiSQL, GloVE version: `experiments/wikisql-glove-run.jsonnet`
+- Spider, GloVE version: `experiments/spider-glove-run.jsonnet`
+- Spider, BERT version (requires a GPU with at least 16GB memory): `experiments/spider-bert-run.jsonnet`
+- WikiSQL, GloVE version: `experiments/wikisql-glove-run.jsonnet`
 
 The exact model accuracy may vary by ±2% depending on a random seed. See [paper](https://arxiv.org/abs/1911.04942) for details.
 
-
 ## Contributing
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
+This project welcomes contributions and suggestions. Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
@@ -108,9 +113,10 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-
 ## Aish's Stuff
+
 ### Useful commands
+
 ```
 docker build -t ratsql . -t aishpra/ratsql
 docker run -p 5000:5000 --rm -m4g -v /Users/aish/Documents/repos/RATSQL/data:/mnt/data -it aishpra/ratsql

@@ -21,7 +21,7 @@
         bert_token_type: true,
         decoder_hidden_size: 512,
         end_with_from: true, # equivalent to "SWGOIF" if true
-        clause_order: null, # strings like "SWGOIF", it will be prioriotized over end_with_from 
+        clause_order: null, # strings like "SWGOIF", it will be prioriotized over end_with_from
     },
 
     eval_name: "bert_run_%s_%d" % [self.eval_use_heuristic, self.eval_beam_size],

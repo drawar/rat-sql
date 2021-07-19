@@ -1,6 +1,6 @@
---find-links https://download.pytorch.org/whl/torch_stable.html
 --editable .
-sklearn
+--find-links https://download.pytorch.org/whl/torch_stable.html
 mlflow
 pytorch-lightning
+sklearn
 torch

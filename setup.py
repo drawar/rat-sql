@@ -1,10 +1,11 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages
+from setuptools import setup
 
 setup(
     name='RAT-SQL',
     version='1.0',
     description='A relation-aware semantic parsing model from English to SQL',
-    packages=find_packages(exclude=["*_test.py", "test_*.py"]),
+    packages=find_packages(exclude=['*_test.py', 'test_*.py']),
     package_data={
         '': ['*.asdl'],
     },
@@ -30,5 +31,5 @@ setup(
         'tqdm~=4.36.1',
         'transformers~=2.3.0',
     ],
-    entry_points={"console_scripts": ["ratsql=run:main"]},
+    entry_points={'console_scripts': ['ratsql=run:main']},
 )
