@@ -24,7 +24,7 @@
         clause_order: null, # strings like "SWGOIF", it will be prioriotized over end_with_from
     },
 
-    eval_name: "run_%s_%d" % [self.eval_use_heuristic, self.eval_beam_size],
+    eval_name: "distilbart_run_%s_%d" % [self.eval_use_heuristic, self.eval_beam_size],
     eval_output: "__LOGDIR__/ie_dirs",
     eval_beam_size: 1,
     eval_use_heuristic: true,

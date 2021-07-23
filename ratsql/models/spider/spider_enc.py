@@ -10,6 +10,8 @@ from transformers import BartForConditionalGeneration
 from transformers import BartTokenizer
 from transformers import BertModel
 from transformers import BertTokenizer
+from transformers import DistilBertModel
+from transformers import DistilBertTokenizer
 
 from ratsql.models import abstract_preproc
 from ratsql.models.spider import spider_enc_modules
@@ -724,7 +726,8 @@ class SpiderEncoderBertPreproc(SpiderEncoderV2Preproc):
         self.counted_db_ids = set()
         self.preprocessed_schemas = {}
 
-        self.tokenizer = BertTokenizer.from_pretrained(bert_version)
+        # self.tokenizer = BertTokenizer.from_pretrained(bert_version)
+        self.tokenizer = DistilBertTokenizer.from_pretrained(bert_version)
 
         # TODO: should get types from the data
         column_types = ['text', 'number', 'time', 'boolean', 'others']
@@ -806,7 +809,8 @@ class SpiderEncoderBertPreproc(SpiderEncoderV2Preproc):
                     f.write(json.dumps(text) + '\n')
 
     def load(self):
-        self.tokenizer = BertTokenizer.from_pretrained(self.data_dir)
+        # self.tokenizer = BertTokenizer.from_pretrained(self.data_dir)
+        self.tokenizer = DistilBertTokenizer.from_pretrained(self.data_dir)
 
 
 @registry.register('encoder', 'spider-bert')
@@ -853,7 +857,8 @@ class SpiderEncoderBert(torch.nn.Module):
             sc_link=True,
         )
 
-        self.bert_model = BertModel.from_pretrained(bert_version)
+        # self.bert_model = BertModel.from_pretrained(bert_version)
+        self.bert_model = DistilBertModel.from_pretrained(bert_version)
         self.tokenizer = self.preproc.tokenizer
         self.bert_model.resize_token_embeddings(
             len(self.tokenizer),
